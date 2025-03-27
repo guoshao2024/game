@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>游戏角色展示</title>
     <style>
         body {
@@ -11,10 +11,12 @@
             color: white;
             margin: 0;
             padding: 20px;
+            touch-action: manipulation;
         }
         h1 {
             text-align: center;
             color: #4CAF50;
+            margin-bottom: 20px;
         }
         .gallery {
             display: grid;
@@ -38,6 +40,7 @@
             height: 300px;
             object-fit: cover;
             display: block;
+            cursor: pointer;
         }
         .card .name {
             padding: 15px;
@@ -72,15 +75,34 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s;
+            touch-action: pan-y;
         }
         .fullscreen.active {
             opacity: 1;
             pointer-events: all;
         }
-        .fullscreen img {
-            max-width: 90%;
-            max-height: 90%;
+        .fullscreen-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fullscreen-img-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fullscreen-img {
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
+            transition: transform 0.3s ease;
         }
         .close-btn {
             position: absolute;
@@ -89,6 +111,52 @@
             font-size: 30px;
             color: white;
             cursor: pointer;
+            z-index: 101;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 30px;
+            color: white;
+            cursor: pointer;
+            z-index: 101;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .prev-btn {
+            left: 20px;
+        }
+        .next-btn {
+            right: 20px;
+        }
+        .index-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            z-index: 101;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 0 auto;
         }
     </style>
 </head>
@@ -97,8 +165,15 @@
     <div class="gallery" id="gallery"></div>
     
     <div class="fullscreen" id="fullscreen">
-        <span class="close-btn" id="closeBtn">&times;</span>
-        <img id="fullscreenImg" src="" alt="">
+        <div class="fullscreen-content">
+            <span class="close-btn" id="closeBtn">&times;</span>
+            <div class="fullscreen-img-container">
+                <img class="fullscreen-img" id="fullscreenImg" src="" alt="">
+            </div>
+            <div class="nav-btn prev-btn" id="prevBtn">❮</div>
+            <div class="nav-btn next-btn" id="nextBtn">❯</div>
+            <div class="index-indicator" id="indexIndicator"></div>
+        </div>
     </div>
 
     <script>
@@ -118,24 +193,30 @@
         const fullscreen = document.getElementById('fullscreen');
         const fullscreenImg = document.getElementById('fullscreenImg');
         const closeBtn = document.getElementById('closeBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const indexIndicator = document.getElementById('indexIndicator');
+
+        let currentIndex = 0;
+        let startX = 0;
+        let endX = 0;
 
         // 生成画廊
-        characters.forEach(char => {
-            // 注意：这里使用带有空格的文件名
+        characters.forEach((char, index) => {
             const imgName = `a_ (${char.id}).jpg`;
             
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
                 <div class="number">${char.id}</div>
-                <img src="${imgName}" alt="${char.name}" loading="lazy">
+                <img src="${imgName}" alt="${char.name}" loading="lazy" data-index="${index}">
                 <div class="name">${char.name}</div>
             `;
             
             // 点击放大
-            card.querySelector('img').addEventListener('click', () => {
-                fullscreenImg.src = imgName;
-                fullscreenImg.alt = char.name;
+            card.querySelector('img').addEventListener('click', (e) => {
+                currentIndex = parseInt(e.target.getAttribute('data-index'));
+                updateFullscreenImage();
                 fullscreen.classList.add('active');
                 document.body.style.overflow = 'hidden';
             });
@@ -143,19 +224,70 @@
             gallery.appendChild(card);
         });
 
+        // 更新全屏显示的图片
+        function updateFullscreenImage() {
+            const char = characters[currentIndex];
+            const imgName = `a_ (${char.id}).jpg`;
+            fullscreenImg.src = imgName;
+            fullscreenImg.alt = char.name;
+            indexIndicator.textContent = `${currentIndex + 1} / ${characters.length}`;
+        }
+
         // 关闭全屏
         closeBtn.addEventListener('click', () => {
             fullscreen.classList.remove('active');
             document.body.style.overflow = 'auto';
         });
 
-        // ESC键关闭
+        // 上一张
+        prevBtn.addEventListener('click', () => {
+            currentIndex = (currentIndex - 1 + characters.length) % characters.length;
+            updateFullscreenImage();
+        });
+
+        // 下一张
+        nextBtn.addEventListener('click', () => {
+            currentIndex = (currentIndex + 1) % characters.length;
+            updateFullscreenImage();
+        });
+
+        // 键盘导航
         document.addEventListener('keydown', (e) => {
+            if (!fullscreen.classList.contains('active')) return;
+            
             if (e.key === 'Escape') {
                 fullscreen.classList.remove('active');
                 document.body.style.overflow = 'auto';
+            } else if (e.key === 'ArrowLeft') {
+                currentIndex = (currentIndex - 1 + characters.length) % characters.length;
+                updateFullscreenImage();
+            } else if (e.key === 'ArrowRight') {
+                currentIndex = (currentIndex + 1) % characters.length;
+                updateFullscreenImage();
             }
         });
+
+        // 触摸滑动切换
+        fullscreen.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+        }, { passive: true });
+
+        fullscreen.addEventListener('touchmove', (e) => {
+            endX = e.touches[0].clientX;
+        }, { passive: true });
+
+        fullscreen.addEventListener('touchend', () => {
+            const threshold = 50; // 滑动阈值
+            if (startX - endX > threshold) {
+                // 向左滑动，下一张
+                currentIndex = (currentIndex + 1) % characters.length;
+                updateFullscreenImage();
+            } else if (endX - startX > threshold) {
+                // 向右滑动，上一张
+                currentIndex = (currentIndex - 1 + characters.length) % characters.length;
+                updateFullscreenImage();
+            }
+        }, { passive: true });
     </script>
 </body>
 </html>
