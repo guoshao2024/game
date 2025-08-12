@@ -1,0 +1,15 @@
+{
+    "name": "我的极简PWA",
+    "short_name": "极简PWA",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#222",
+    "theme_color": "#007bff",
+    "icons": [
+        {
+            "src": "https://i.imgur.com/yGfDqY1.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ]
+}
